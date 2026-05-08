@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Loading</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: #d8dbe3;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .phone {
+    width: 390px;
+    min-height: 844px;
+    background: #eef0f5;
+    border-radius: 48px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px 0;
+    height: 54px;
+    flex-shrink: 0;
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: -0.3px;
+  }
+
+  .notch {
+    width: 120px;
+    height: 34px;
+    background: #111;
+    border-radius: 20px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-icons svg {
+    fill: #111;
+  }
+
+  /* Widget content area */
+  .widget-area {
+    flex: 1;
+    padding: 20px 20px 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Attribution footer */
+  .attribution {
+    padding: 16px 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .attribution-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .attribution-text {
+    font-size: 13px;
+    color: #2d9e3a;
+    font-weight: 400;
+  }
+
+  .attribution-text strong {
+    font-weight: 700;
+  }
+
+  /* Home indicator */
+  .home-indicator {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .home-bar {
+    width: 134px;
+    height: 5px;
+    background: #111;
+    border-radius: 3px;
+  }
+
+  /* ── Skeleton ── */
+  .skeleton-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @keyframes shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Stationary wrapper — holds the SVG mask so it stays fixed on screen.
+     The beam inside translates; the mask does not move with it. */
+  .shimmer-clip {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+  }
+
+  .shimmer-beam {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent              0%,
+      rgba(255,255,255,0.0)   10%,
+      rgba(255,255,255,0.12)  28%,
+      rgba(255,255,255,0.52)  44%,
+      rgba(255,255,255,0.68)  50%,
+      rgba(255,255,255,0.52)  56%,
+      rgba(255,255,255,0.12)  72%,
+      rgba(255,255,255,0.0)   90%,
+      transparent             100%
+    );
+    animation: shimmer 2s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .skel {
+    background-color: #e2e5ed;
+    border-radius: 12px;
+  }
+
+  .skel-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-bottom: 16px;
+  }
+
+  .skel-title {
+    height: 20px;
+    width: 55%;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .skel-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .skel-card {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .skel-card:nth-child(1) { height: 88px; }
+  .skel-card:nth-child(2) { height: 96px; }
+  .skel-card:nth-child(3) { height: 84px; }
+  .skel-card:nth-child(4) { height: 92px; }
+
+  /* ── Loaded state ── */
+  .loaded-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loaded-icon {
+    width: 56px;
+    height: 56px;
+    background: #2d9e3a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loaded-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .loaded-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1a1a2e;
+    letter-spacing: -0.2px;
+  }
+
+  .loaded-sub {
+    font-size: 13px;
+    color: #8890a4;
+    text-align: center;
+    max-width: 200px;
+    line-height: 1.5;
+  }
+
+  .replay-btn {
+    margin-top: 8px;
+    padding: 10px 24px;
+    background: transparent;
+    border: 1.5px solid #2d9e3a;
+    color: #2d9e3a;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+
+  .replay-btn:hover {
+    background: #2d9e3a;
+    color: #fff;
+  }
+
+  /* Transition helpers */
+  .fade-out {
+    animation: fadeOut 0.4s ease forwards;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.4s ease forwards;
+    pointer-events: auto;
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; pointer-events: none; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="notch"></div>
+    <div class="status-icons">
+      <!-- Signal -->
+      <svg width="17" height="12" viewBox="0 0 17 12">
+        <rect x="0"  y="8" width="3" height="4" rx="0.5"/>
+        <rect x="4.5" y="5.5" width="3" height="6.5" rx="0.5"/>
+        <rect x="9"  y="3" width="3" height="9" rx="0.5"/>
+        <rect x="13.5" y="0" width="3" height="12" rx="0.5" opacity="0.3"/>
+      </svg>
+      <!-- WiFi -->
+      <svg width="16" height="12" viewBox="0 0 16 12">
+        <path d="M8 9.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/>
+        <path d="M3.5 6.2A6.5 6.5 0 0112.5 6.2" stroke="#111" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        <path d="M1 3.5A10 10 0 0115 3.5" stroke="#111" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      </svg>
+      <!-- Battery -->
+      <svg width="25" height="12" viewBox="0 0 25 12">
+        <rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#111" stroke-width="1" fill="none"/>
+        <rect x="22" y="3.5" width="2.5" height="5" rx="1.5" fill="#111" opacity="0.4"/>
+        <rect x="2" y="2" width="17" height="8" rx="1.5" fill="#111"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Widget area -->
+  <div class="widget-area">
+
+    <!-- Skeleton -->
+    <div class="skeleton-view" id="skeletonView">
+      <div class="shimmer-clip" id="shimmerClip"><div class="shimmer-beam"></div></div>
+      <div class="skel skel-avatar"></div>
+      <div class="skel skel-title"></div>
+      <div class="skel-cards">
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+        <div class="skel skel-card"></div>
+      </div>
+    </div>
+
+    <!-- Loaded state -->
+    <div class="loaded-view" id="loadedView">
+      <div class="loaded-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="loaded-title">Content loaded</div>
+      <div class="loaded-sub">Your widget data is ready to display.</div>
+      <button class="replay-btn" id="replayBtn">Replay</button>
+    </div>
+
+  </div>
+
+  <!-- Attribution — always visible -->
+  <div class="attribution">
+    <svg class="attribution-icon" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="10.25" stroke="#2d9e3a" stroke-width="1.5"/>
+      <path d="M7 11c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z" fill="#2d9e3a" opacity="0.25"/>
+      <path d="M11 7v4l2.5 2.5" stroke="#2d9e3a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Uphold-style leaf icon approximation -->
+      <path d="M8.5 8.5 Q11 5 13.5 8.5 Q11 12 8.5 8.5Z" fill="#2d9e3a"/>
+    </svg>
+    <span class="attribution-text">Powered by <strong>Uphold</strong></span>
+  </div>
+
+  <!-- Home indicator -->
+  <div class="home-indicator">
+    <div class="home-bar"></div>
+  </div>
+
+</div>
+
+<script>
+  const skeletonView = document.getElementById('skeletonView');
+  const loadedView   = document.getElementById('loadedView');
+  const replayBtn    = document.getElementById('replayBtn');
+  const shimmerClip  = document.getElementById('shimmerClip');
+
+  let resolveTimer = null;
+
+  // Build an SVG mask from the actual painted positions of each .skel element
+  // so the shimmer is clipped precisely to their rounded shapes.
+  function buildShimmerMask() {
+    const origin = shimmerClip.getBoundingClientRect();
+    const skels  = skeletonView.querySelectorAll('.skel');
+
+    const rects = Array.from(skels).map(el => {
+      const r  = el.getBoundingClientRect();
+      const x  = r.left - origin.left;
+      const y  = r.top  - origin.top;
+      const raw = getComputedStyle(el).borderRadius;
+      const rx  = raw.endsWith('%')
+        ? el.offsetWidth * parseFloat(raw) / 100
+        : parseFloat(raw);
+      return `<rect x="${x}" y="${y}" width="${r.width}" height="${r.height}" rx="${rx}" ry="${rx}" fill="white"/>`;
+    });
+
+    const svg = [
+      `<svg xmlns="http://www.w3.org/2000/svg"`,
+      ` width="${origin.width}" height="${origin.height}">`,
+      rects.join(''),
+      `</svg>`
+    ].join('');
+
+    const url = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    shimmerClip.style.maskImage        = `url("${url}")`;
+    shimmerClip.style.webkitMaskImage  = `url("${url}")`;
+    shimmerClip.style.maskRepeat       = 'no-repeat';
+    shimmerClip.style.webkitMaskRepeat = 'no-repeat';
+  }
+
+  function startSkeleton() {
+    skeletonView.className = 'skeleton-view';
+    loadedView.className   = 'loaded-view';
+
+    skeletonView.style.display = 'none';
+    void skeletonView.offsetHeight;
+    skeletonView.style.display = '';
+
+    resolveTimer = setTimeout(() => {
+      skeletonView.classList.add('fade-out');
+      setTimeout(() => {
+        skeletonView.style.display = 'none';
+        loadedView.classList.add('fade-in');
+      }, 400);
+    }, 3000);
+  }
+
+  replayBtn.addEventListener('click', () => {
+    clearTimeout(resolveTimer);
+    loadedView.classList.remove('fade-in');
+    loadedView.style.opacity = '';
+    skeletonView.style.display = '';
+    startSkeleton();
+  });
+
+  // Wait two frames so the browser has painted and getBoundingClientRect is valid
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    buildShimmerMask();
+    startSkeleton();
+  }));
+</script>
+
+</body>
+</html>
