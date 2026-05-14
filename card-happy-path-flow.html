@@ -59,6 +59,13 @@
         from { stroke-dashoffset: 0; }
         to   { stroke-dashoffset: 339; }
       }
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+      }
+      .sheet-slide-up {
+        animation: slideUp 0.38s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+      }
       .countdown-ring {
         transform: rotate(90deg) scaleX(-1);
         transform-origin: 60px 60px;
@@ -456,7 +463,7 @@
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 10 }} onClick={onBack} />
 
           {/* Bottom sheet */}
-          <div style={{
+          <div className="sheet-slide-up" style={{
             position: "absolute", bottom: 0, left: 0, right: 0,
             background: "#fff",
             borderRadius: "32px 32px 0 0",
