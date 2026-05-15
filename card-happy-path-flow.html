@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Widget API Card flow – Prototype</title>
+  <title>Uphold Payment Widget – Prototype</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1252,7 +1252,6 @@
       { id: 4,      label: "Select card" },
       { id: 5,      label: "CVV entry" },
       { id: 6,      label: "Validating CVV" },
-      { id: 7,      label: "Enter amount" },
       { id: 9,      label: "Loading review" },
       { id: 10,     label: "Preview" },
       { id: 11,     label: "Checking card" },
@@ -1277,7 +1276,7 @@
           </div>
           {SCREEN_LIST.map(({ id, label }, i) => {
             const isActive = current === id;
-            const num = typeof id === "number" ? id : "—";
+            const num = i + 1;
             return (
               <button key={id} onClick={() => onSelect(id)} style={{
                 background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
@@ -1340,7 +1339,7 @@
           case "sk34": return <ScreenSK34 onNext={() => go(4)} />;
           case 4:  return <Screen4 onNext={() => go(5)} onBack={() => go(3)} />;
           case 5:  return <Screen5 onNext={v => { setCvv(v); go(6); }} onBack={() => go(4)} />;
-          case 6:  return <Screen6 cvv={cvv} onNext={() => { setCardSelected(true); parseFloat(amount) > 0 ? go(9) : go(1); }} />;
+          case 6:  return <Screen6 cvv={cvv} onNext={() => { setCardSelected(true); parseFloat(amount) > 0 ? go(10) : go(1); }} />;
           case 7:  return <Screen7 onNext={v => { setAmount(v); go(9); }} onBack={() => go(4)} />;
           case 9:  return <Screen9 onNext={() => go(10)} />;
           case 10: return <Screen10 amount={amount} onNext={() => go(11)} onBack={() => go(7)} onEdit={() => go(4)} />;
